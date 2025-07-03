@@ -2,6 +2,9 @@ name: "Git Backup Action"
 description: "Composit GitHub Action to create backup of all organization repo on AWS s3"
 
 inputs:
+  token:
+    description: "GITHUB_TOKEN"
+    required: true
   org:
     description: "GitHub organization name"
     required: true
@@ -23,7 +26,7 @@ runs:
   using: "composite"
   steps:
     - id: repos
-      uses: octokit/graphql-action@v2
+      uses: octokit/graphql-action@v2.3.2
       with:
         query: |
           {
@@ -33,6 +36,8 @@ runs:
               }
             }
           }
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
 
     - uses: aws-actions/configure-aws-credentials@v4
       with:
