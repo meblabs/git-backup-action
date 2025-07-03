@@ -3,7 +3,7 @@ description: "Composit GitHub Action to create backup of all organization repo o
 
 inputs:
   token:
-    description: "GITHUB_TOKEN"
+    description: "Personal access token to handle the repos"
     required: true
   org:
     description: "GitHub organization name"
@@ -32,7 +32,7 @@ runs:
           {
             organization(login: "${{ inputs.org }}") {
               repositories(first: 100, isFork: false) {
-                nodes { name sshUrl }
+                nodes { name }
               }
             }
           }
@@ -48,18 +48,25 @@ runs:
       shell: bash
       env:
         OUT: /tmp/backup
-        DATE: ${{ github.run_started_at }}
         PREFIX: ${{ inputs.prefix }}
         BUCKET: ${{ inputs.s3-bucket }}
         REPO_JSON: ${{ steps.repos.outputs.data }}
-        KEEP: ${{ inputs.retain-local }}
+        ORG: ${{ inputs.org }}          
+        TOKEN: ${{ inputs.token }}      
       run: |
         set -euo pipefail
+        DATE=$(date -u +%Y-%m-%dT%H%M%S)
         mkdir -p "$OUT"
-        echo "$REPO_JSON" | jq -r '.organization.repositories.nodes[] | [.name,.sshUrl] | @tsv' \
-        | while IFS=$'\t' read -r NAME URL; do
-            git clone --mirror "$URL" "$OUT/$NAME.git"
+
+        echo "$REPO_JSON" | jq -r '.organization.repositories.nodes[].name' \
+        | while read -r NAME; do
+            git clone --mirror \
+              "https://x-access-token:${TOKEN}@github.com/${ORG}/${NAME}.git" \
+              "$OUT/$NAME.git"
+
             tar czf "$OUT/$NAME-$DATE.git.tar.gz" -C "$OUT" "$NAME.git"
-            aws s3 cp "$OUT/$NAME-$DATE.git.tar.gz" "s3://$BUCKET/$PREFIX/$NAME-$DATE.tar.gz"
-            [[ "$KEEP" == "false" ]] && rm -rf "$OUT/$NAME.git" "$OUT/$NAME-$DATE.git.tar.gz"
-          done
+            aws s3 cp "$OUT/$NAME-$DATE.git.tar.gz" \
+              "s3://$BUCKET/$PREFIX/$NAME-$DATE.git.tar.gz"
+
+            rm -rf "$OUT/$NAME.git" "$OUT/$NAME-$DATE.git.tar.gz"
+        done
