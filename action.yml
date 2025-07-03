@@ -56,7 +56,7 @@ runs:
       run: |
         set -euo pipefail
         mkdir -p "$OUT"
-        echo "$REPO_JSON" | jq -r '.data.organization.repositories.nodes[] | [.name,.sshUrl] | @tsv' \
+        echo "$REPO_JSON" | jq -r '.organization.repositories.nodes[] | [.name,.sshUrl] | @tsv' \
         | while IFS=$'\t' read -r NAME URL; do
             git clone --mirror "$URL" "$OUT/$NAME.git"
             tar czf "$OUT/$NAME-$DATE.git.tar.gz" -C "$OUT" "$NAME.git"
