@@ -29,20 +29,51 @@ No static AWS keys are stored in GitHub.
 
 ## Prerequisites (one‑time per AWS account)
 
-1. **S3 bucket** – e.g. `git-backups` with default encryption and lifecycle rules:  
+1. **Create S3 bucket** – e.g. `git-backups` with default encryption and lifecycle rules:  
    * `daily/` → delete after 7 days  
    * `weekly/` → delete after 28 days  
    * `monthly/` → transition to Glacier Deep Archive after 30 days, delete after 365 days  
-2. **OIDC identity provider** – `token.actions.githubusercontent.com` with audience `sts.amazonaws.com`.  
-3. **IAM role** (e.g. `github-backup`)  
-   * **Trust policy**: allow `sts:AssumeRoleWithWebIdentity` for `repo:YOURORG/infra-backup:*`  
-   * **Policy**: `s3:PutObject`, `s3:GetObject`, `s3:ListBucket` on the bucket.
+
+2. **Create the OIDC identity provider in AWS**  
+   IAM → **Identity providers** → *Add provider* → **OpenID Connect**  
+   • Provider URL: `https://token.actions.githubusercontent.com`  
+   • Audience (Client ID): `sts.amazonaws.com`
+
+3. **Create s3 policy** (e.g. `github-backup-policy`) 
+    ```json
+     {
+       "Version": "2012-10-17",
+       "Statement": [
+         {
+           "Sid": "GitBackupAccess",
+           "Effect": "Allow",
+           "Action": [
+             "s3:PutObject",
+             "s3:GetObject",
+             "s3:ListBucket"
+           ],
+           "Resource": [
+             "arn:aws:s3:::<YOUR_BUCKET_NAME>",
+             "arn:aws:s3:::<YOUR_BUCKET_NAME>/*"
+           ]
+         }
+       ]
+     }
+     ```
+
+4. **Create the IAM role** that the workflow will assume (e.g. `github-backup`)  
+   IAM → **Roles** → *Create role* → **Web identity**  
+   • Identity provider: `token.actions.githubusercontent.com`  
+   • Audience: `sts.amazonaws.com`  
+   • Trust policy: use the JSON in the “Prerequisites” section (update `YOURORG` and bucket names)  
+   • Permissions: attach the **S3 policy** shown earlier (`GitBackupAccess`).
 
 ---
 
 ## Usage (step‑by‑step)
 
-1. **Create a repo** in the organisation (e.g. `git-backup`) and add this action
+1. **Create a repo** in the organisation (e.g. `git-backup`) and add this action.
+
 2. **Add the workflow** `.github/workflows/backup.yml`:
 
 ```yaml
@@ -76,8 +107,6 @@ jobs:
           aws-region:    eu-west-1
           prefix:        ${{ steps.when.outputs.prefix }}
 ```
-
-3. **Push** and run the workflow from the *Actions* tab to perform the first backup.
 
 ---
 
