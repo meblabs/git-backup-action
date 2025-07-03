@@ -1,2 +1,96 @@
-# git-backup-action
-Composit GitHub Action to create backup of all organization repo on AWS s3
+# Git Backup Action
+
+Composite GitHub Action that creates compressed mirror snapshots of every repository in a GitHub organisation and uploads them to an Amazon S3 bucket **without** storing long‑lived AWS credentials (OIDC‑based).
+
+---
+
+## How it works
+
+1. **Enumerate repositories** – a GraphQL query lists all non‑fork repositories in the organisation.  
+2. **Assume an AWS role via OIDC** – the action requests an OIDC token (`id‑token: write`). AWS STS exchanges it for temporary credentials for the IAM role you provide (`role‑to‑assume`).  
+3. **Mirror & upload** – each repo is cloned with `git clone --mirror`, tar‑compressed, and uploaded to `s3://<bucket>/<prefix>/`.  
+4. **Retention** – you manage retention with S3 Lifecycle rules (e.g. delete `daily/` after 7 days, etc.).
+
+No static AWS keys are stored in GitHub.
+
+---
+
+## Inputs
+
+| Name           | Required | Description                                         |
+|----------------|----------|-----------------------------------------------------|
+| `org`          | ✔︎       | GitHub organisation to back up                      |
+| `s3-bucket`    | ✔︎       | Destination S3 bucket                               |
+| `role-to-assume` | ✔︎     | IAM role ARN to assume via OIDC                     |
+| `aws-region`   |          | AWS region (default `eu-west-1`)                    |
+| `prefix`       | ✔︎       | Sub‑folder in the bucket (`daily`, `weekly`, `monthly`) |
+
+---
+
+## Prerequisites (one‑time per AWS account)
+
+1. **S3 bucket** – e.g. `git-backups` with default encryption and lifecycle rules:  
+   * `daily/` → delete after 7 days  
+   * `weekly/` → delete after 28 days  
+   * `monthly/` → transition to Glacier Deep Archive after 30 days, delete after 365 days  
+2. **OIDC identity provider** – `token.actions.githubusercontent.com` with audience `sts.amazonaws.com`.  
+3. **IAM role** (e.g. `github-backup`)  
+   * **Trust policy**: allow `sts:AssumeRoleWithWebIdentity` for `repo:YOURORG/infra-backup:*`  
+   * **Policy**: `s3:PutObject`, `s3:GetObject`, `s3:ListBucket` on the bucket.
+
+---
+
+## Usage (step‑by‑step)
+
+1. **Create a repo** in the organisation (e.g. `git-backup`) and add this action
+2. **Add the workflow** `.github/workflows/backup.yml`:
+
+```yaml
+name: Backup organisation repositories
+on:
+  schedule:
+    - cron: '0 2 * * *'  
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      # determine daily / weekly / monthly
+      - id: when
+        run: |
+          PREFIX=daily
+          [[ $(date -u +%u) == 7 ]] && PREFIX=weekly      # Sunday
+          [[ $(date -u +%d) == 01 ]] && PREFIX=monthly    # 1st day of month
+          echo "prefix=$PREFIX" >> "$GITHUB_OUTPUT"
+
+      - uses: meblabs/git-backup-action@v1
+        with:
+          org:           your-org
+          s3-bucket:     org-git-backups
+          role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/github-backup
+          aws-region:    eu-west-1
+          prefix:        ${{ steps.when.outputs.prefix }}
+```
+
+3. **Push** and run the workflow from the *Actions* tab to perform the first backup.
+
+---
+
+## Restoring a repository
+
+```bash
+aws s3 cp s3://org-git-backups/weekly/myrepo-2025-07-03T030000.git.tar.gz .
+tar xzf myrepo-*.tar.gz
+cd myrepo.git
+git remote add origin git@github.com:YOURORG/myrepo.git
+git push --mirror origin
+```
+
+---
+
+Feel free to adjust the schedule or lifecycle settings to match your retention policy.
