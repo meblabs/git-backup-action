@@ -19,6 +19,7 @@ No static AWS keys are stored in GitHub.
 
 | Name           | Required | Description                                         |
 |----------------|----------|-----------------------------------------------------|
+| `token`       | ✔︎       | Personal access token to handle the repos |
 | `org`          | ✔︎       | GitHub organisation to back up                      |
 | `s3-bucket`    | ✔︎       | Destination S3 bucket                               |
 | `role-to-assume` | ✔︎     | IAM role ARN to assume via OIDC                     |
@@ -106,6 +107,7 @@ jobs:
           role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/github-backup
           aws-region:    eu-west-1
           prefix:        ${{ steps.when.outputs.prefix }}
+          token:         ${{ secrets.<PAT> }}
 ```
 
 ---
