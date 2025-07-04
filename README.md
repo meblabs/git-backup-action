@@ -2,8 +2,6 @@
 
 Composite GitHub Action that creates compressed mirror snapshots of every repository in a GitHub organisation and uploads them to an Amazon S3 bucket **without** storing long‑lived AWS credentials (OIDC‑based).
 
----
-
 ## How it works
 
 1. **Enumerate repositories** – a GraphQL query lists all non‑fork repositories in the organisation.  
@@ -13,7 +11,6 @@ Composite GitHub Action that creates compressed mirror snapshots of every reposi
 
 No static AWS keys are stored in GitHub.
 
----
 
 ## Inputs
 
@@ -26,14 +23,26 @@ No static AWS keys are stored in GitHub.
 | `aws-region`   |          | AWS region (default `eu-west-1`)                    |
 | `prefix`       | ✔︎       | Sub‑folder in the bucket (`daily`, `weekly`, `monthly`) |
 
----
 
-## Prerequisites (one‑time per AWS account)
+## AWS setup (one‑time per AWS account)
+
+You can use the provided `setup.sh` script to automate the AWS setup. Just configure the required variables in the `.env` file before running the script.
+
+Alternatively, if you prefer to use the AWS Console, follow the steps below.
 
 1. **Create S3 bucket** – e.g. `git-backups` with default encryption and lifecycle rules:  
-   * `daily/` → delete after 7 days  
+   * `daily/`  → delete after 7 days  
    * `weekly/` → delete after 28 days  
-   * `monthly/` → transition to Glacier Deep Archive after 30 days, delete after 365 days  
+   * `monthly/` → delete after 365 days
+
+   Setting the rule 
+   1. Open **S3 → Buckets → _your bucket_ → Management → Lifecycle rules → Create rule**  
+   2. Rule name: `git-backup-retention`  
+   3. Under **Filter**, choose **Prefix** and type `daily/`  
+   4. Under **Lifecycle rule actions**, enable **Expire current versions** and set **7 days**  
+   5. Choose **Add lifecycle rule action**, select **Expire current versions**, set **28 days**, and type prefix `weekly/`  
+   6. Again choose **Add lifecycle rule action**, select **Expire current versions**, set **365 days**, and type prefix `monthly/`  
+   7. Click **Create rule** to save.  
 
 2. **Create the OIDC identity provider in AWS**  
    IAM → **Identity providers** → *Add provider* → **OpenID Connect**  
@@ -69,9 +78,8 @@ No static AWS keys are stored in GitHub.
    • Trust policy: use the JSON in the “Prerequisites” section (update `YOURORG` and bucket names)  
    • Permissions: attach the **S3 policy** shown earlier (`GitBackupAccess`).
 
----
 
-## Usage (step‑by‑step)
+## Usage 
 
 1. **Create a repo** in the organisation (e.g. `git-backup`) and add this action.
 
@@ -92,7 +100,6 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
-      # determine daily / weekly / monthly
       - id: when
         run: |
           PREFIX=daily
@@ -110,8 +117,6 @@ jobs:
           token:         ${{ secrets.<PAT> }}
 ```
 
----
-
 ## Restoring a repository
 
 ```bash
@@ -121,7 +126,5 @@ cd myrepo.git
 git remote add origin git@github.com:YOURORG/myrepo.git
 git push --mirror origin
 ```
-
----
 
 Feel free to adjust the schedule or lifecycle settings to match your retention policy.
