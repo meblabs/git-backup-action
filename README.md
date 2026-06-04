@@ -1,5 +1,9 @@
 # Git Backup Action
 
+[![zizmor](https://github.com/meblabs/git-backup-action/actions/workflows/zizmor.yml/badge.svg)](https://github.com/meblabs/git-backup-action/actions/workflows/zizmor.yml)
+![type](https://img.shields.io/badge/type-Composite%20Action-2ea44f)
+[![](https://img.shields.io/static/v1?label=MEBlabs&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/meblabs)
+
 Composite GitHub Action that creates compressed mirror snapshots of every repository in a GitHub organisation and uploads them to an Amazon S3 bucket **without** storing long‑lived AWS credentials (OIDC‑based).
 
 ## How it works
@@ -10,6 +14,11 @@ Composite GitHub Action that creates compressed mirror snapshots of every reposi
 4. **Retention** – you manage retention with S3 Lifecycle rules (e.g. delete `daily/` after 7 days, etc.).
 
 No static AWS keys are stored in GitHub.
+
+> [!IMPORTANT]
+> This action runs `octokit/graphql-action@v3` and `aws-actions/configure-aws-credentials@v6`,
+> which execute on the Node 24 runtime. Use it on `ubuntu-latest` or a self-hosted runner
+> with agent `>= v2.327.1`.
 
 
 ## Inputs

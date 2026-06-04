@@ -26,7 +26,8 @@ runs:
   using: "composite"
   steps:
     - id: repos
-      uses: octokit/graphql-action@v2.3.2
+      # octokit/* is not in the ref-pin allowlist -> hash-pinned.
+      uses: octokit/graphql-action@ddde8ebb2493e79f390e6449c725c21663a67505 # v3.0.2
       with:
         query: |
           {
@@ -39,7 +40,7 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
 
-    - uses: aws-actions/configure-aws-credentials@v4
+    - uses: aws-actions/configure-aws-credentials@v6
       with:
         role-to-assume: ${{ inputs.role-to-assume }}
         aws-region: ${{ inputs.aws-region }}
