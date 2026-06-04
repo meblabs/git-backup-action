@@ -21,13 +21,19 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+          persist-credentials: false
 
       - name: Move latest major tag to HEAD
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           # Highest existing major tag of the form vN (a vN tag is assumed to exist).
           latest_major=$(git tag -l 'v[0-9]*' | grep -E '^v[0-9]+$' | sort -V | tail -1)
           echo "Moving ${latest_major} -> $(git rev-parse --short "${GITHUB_SHA}")"
           git tag -f "${latest_major}" "${GITHUB_SHA}"
-          git push origin "refs/tags/${latest_major}" --force
+          # Token passed via env (masked in logs); not stored in the checkout config.
+          git push --force \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            "refs/tags/${latest_major}"

@@ -2,7 +2,7 @@ name: Dependabot auto-merge
 
 # Auto-merges Dependabot PRs for SECURITY and PATCH updates only.
 # Minor/major bumps stay as PRs for manual review and tagging.
-on: pull_request_target
+on: pull_request
 
 permissions:
   contents: write
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   auto-merge:
-    if: github.actor == 'dependabot[bot]'
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       # dependabot/* is not in the ref-pin allowlist, so it is hash-pinned.
