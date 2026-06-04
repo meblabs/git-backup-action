@@ -24,6 +24,8 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # 1. ENV & ARG CHECKS
 # ---------------------------------------------------------------------------
+# .env is created at runtime from .env.example; not available at lint time.
+# shellcheck source=/dev/null
 source .env
 
 : "${BUCKET:?BUCKET not set in .env}"
@@ -82,7 +84,7 @@ if ! aws iam get-open-id-connect-provider --open-id-connect-provider-arn "$PROVI
   # Obtain SHA1 thumbprint of GitHub's TLS cert (lowercase, no colons)
   THUMBPRINT=$(echo | openssl s_client -servername token.actions.githubusercontent.com -showcerts -connect token.actions.githubusercontent.com:443 2>/dev/null \
                | openssl x509 -fingerprint -sha1 -noout \
-               | cut -d'=' -f2 | tr -d ':' | tr 'A-Z' 'a-z')
+               | cut -d'=' -f2 | tr -d ':' | tr '[:upper:]' '[:lower:]')
   aws iam create-open-id-connect-provider \
     --url "$OIDC_URL" \
     --client-id-list sts.amazonaws.com \
