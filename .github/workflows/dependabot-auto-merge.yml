@@ -4,9 +4,12 @@ name: Dependabot auto-merge
 # Minor/major bumps stay as PRs for manual review and tagging.
 on: pull_request
 
+# The merge runs under the MEBBOT PAT (see below), so GITHUB_TOKEN only needs
+# read for fetch-metadata. The PAT is required because a push made with the
+# default GITHUB_TOKEN does NOT trigger other workflows (move-major-tag).
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+  pull-requests: read
 
 jobs:
   auto-merge:
@@ -27,4 +30,7 @@ jobs:
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Fine-grained PAT of the MeblabsBot account, stored as a *Dependabot*
+          # secret (Dependabot runs don't see normal Actions secrets). Using it
+          # here makes the merge push trigger the move-major-tag workflow.
+          GH_TOKEN: ${{ secrets.MEBBOT }}
