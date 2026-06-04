@@ -1,7 +1,7 @@
 # Git Backup Action
 
-[![zizmor](https://github.com/meblabs/git-backup-action/actions/workflows/zizmor.yml/badge.svg)](https://github.com/meblabs/git-backup-action/actions/workflows/zizmor.yml)
-![type](https://img.shields.io/badge/type-Composite%20Action-2ea44f)
+[![quality](https://github.com/meblabs/git-backup-action/actions/workflows/quality.yml/badge.svg)](https://github.com/meblabs/git-backup-action/actions/workflows/quality.yml)
+![type](https://img.shields.io/badge/github-Composite%20Action-blue?logo=github)
 [![](https://img.shields.io/static/v1?label=MEBlabs&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/meblabs)
 
 Composite GitHub Action that creates compressed mirror snapshots of every repository in a GitHub organisation and uploads them to an Amazon S3 bucket **without** storing long‑lived AWS credentials (OIDC‑based).
