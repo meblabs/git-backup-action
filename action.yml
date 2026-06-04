@@ -65,6 +65,11 @@ runs:
               "https://x-access-token:${TOKEN}@github.com/${ORG}/${NAME}.git" \
               "$OUT/$NAME.git"
 
+            # --mirror persists the tokenized remote URL in .git/config; strip it
+            # so the PAT is NOT archived in the tarball uploaded to S3.
+            git --git-dir="$OUT/$NAME.git" remote set-url origin \
+              "https://github.com/${ORG}/${NAME}.git"
+
             tar czf "$OUT/$NAME-$DATE.git.tar.gz" -C "$OUT" "$NAME.git"
             aws s3 cp "$OUT/$NAME-$DATE.git.tar.gz" \
               "s3://$BUCKET/$PREFIX/$NAME-$DATE.git.tar.gz"
