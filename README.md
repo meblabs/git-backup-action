@@ -35,7 +35,16 @@ No static AWS keys are stored in GitHub.
 
 ## AWS setup (one‑time per AWS account)
 
-You can use the provided `setup.sh` script to automate the AWS setup. Just configure the required variables in the `.env` file before running the script.
+You can use the provided `setup.sh` script to automate the AWS setup. Copy the template
+and fill in your values before running the script:
+
+```bash
+cp .env.example .env
+# edit .env, then:
+./setup.sh
+```
+
+`.env` is git-ignored — never commit real values; keep `.env.example` as the template.
 
 Alternatively, if you prefer to use the AWS Console, follow the steps below.
 
